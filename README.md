@@ -1,58 +1,75 @@
 # 🍔 Loga's Burger Platform
 
-Carta digital y panel administrativo full-stack para Loga's Burger. Los clientes ven el menú actualizado en tiempo real, y el dueño del local administra los productos desde un panel privado protegido por login.
+**Full-stack digital menu and restaurant admin dashboard**, built with a security-first, single-admin authentication model. Customers get a live, always-available public menu; the owner manages every product from a protected dashboard.
 
-## ✨ Funcionalidades
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-Express%205-339933?logo=nodedotjs&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-self--seeding-003B57?logo=sqlite&logoColor=white)
+![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%20bcrypt-black?logo=jsonwebtokens)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-- **Carta digital pública** — menú organizado por categorías, siempre visible sin necesidad de loguearse.
-- **Panel administrativo privado** (`/admin`) — crear, editar, eliminar productos y renombrar categorías.
-- **Login con usuario único** — el acceso al panel está protegido con autenticación (JWT + contraseña encriptada). Por diseño, sólo puede existir **un** usuario administrador a la vez, y se crea desde la terminal (no desde la web), para que nadie pueda registrarse por su cuenta.
-- **Base de datos autoconfigurable** — al iniciar el servidor por primera vez, se crean las tablas y se carga el menú inicial automáticamente.
+## Overview
 
-## 🛠️ Stack técnico
+Loga's Burger Platform is a two-part application:
 
-| Capa      | Tecnología                                   |
-|-----------|-----------------------------------------------|
-| Frontend  | React 19 + Vite + React Router                |
-| Backend   | Node.js + Express 5                           |
-| Base de datos | SQLite                                    |
-| Autenticación | JWT (jsonwebtoken) + bcryptjs             |
+- **Public menu** — a clean, categorized digital menu that customers can browse without any login.
+- **Admin dashboard** (`/admin`) — a protected area where the restaurant owner creates, edits, and removes products, and renames categories.
 
-## 📁 Estructura del proyecto
+The project was built end-to-end: database design, REST API, authentication, protected routes, and a deployment-ready configuration for splitting frontend and backend across separate cloud providers.
+
+## Key Features
+
+- **Single-admin authentication** — JWT-based sessions with bcrypt-hashed passwords. There is no public sign-up form: the one admin account is created (or rotated) via a CLI script (`npm run create-admin`), removing any web-facing account-creation attack surface.
+- **Protected REST API** — product-mutating routes (`POST` / `PUT` / `DELETE`) require a valid token via Express middleware; the public `GET /products` endpoint stays open so the menu always loads for customers.
+- **Self-initializing database** — on first run, the server creates its own SQLite schema and seeds the initial menu automatically. No manual migration step required to get a working environment.
+- **Environment-based configuration** — port, CORS origin, JWT secret, and API base URL are all driven by environment variables, so the same codebase runs identically in local dev and in production.
+- **Deployment-ready split architecture** — frontend and backend are designed to be deployed independently (e.g., Vercel for the frontend, Render/Railway for the backend), a common real-world pattern for full-stack apps.
+
+## Tech Stack
+
+| Layer          | Technology                              |
+|----------------|-------------------------------------------|
+| Frontend       | React 19, Vite, React Router              |
+| Backend        | Node.js, Express 5                        |
+| Database       | SQLite                                    |
+| Authentication | JWT (jsonwebtoken) + bcryptjs             |
+| Config         | dotenv                                    |
+
+## Project Structure
 
 ```
 logas-burger-platform/
-├── backend/          # API REST (Express + SQLite)
+├── backend/                  # REST API (Express + SQLite)
 │   ├── controllers/
-│   ├── middleware/
-│   ├── models/
+│   ├── middleware/           # JWT auth middleware
+│   ├── models/                # Single shared DB connection (models/db.js)
 │   ├── routes/
-│   ├── database/     # init.sql, menu.sql
-│   ├── create-admin.js
+│   ├── database/              # init.sql, menu.sql
+│   ├── create-admin.js        # CLI script to create/rotate the admin account
 │   └── server.js
-└── frontend/         # Carta digital + panel admin (React + Vite)
+└── frontend/                  # Public menu + admin dashboard (React + Vite)
     └── src/
-        ├── components/
-        ├── pages/
-        └── Services/
+        ├── components/         # ProtectedRoute, cards, layout
+        ├── pages/              # Menu, Login, Admin
+        └── Services/           # Axios client + auth/product services
 ```
 
-## 🚀 Puesta en marcha (desarrollo local)
+## Getting Started (Local Development)
 
 ### 1. Backend
 
 ```bash
 cd backend
 npm install
-npm run create-admin   # crea el usuario y contraseña del panel admin
+npm run create-admin   # create the admin username & password
 npm start               # http://localhost:5000
 ```
 
-Al ejecutar `npm start` por primera vez, el servidor crea automáticamente la base de datos, sus tablas y el menú inicial (no hace falta correr nada más).
+On first run, the server automatically creates the database, its tables, and seeds the initial menu — no extra setup needed.
 
 ### 2. Frontend
 
-En otra terminal:
+In a separate terminal:
 
 ```bash
 cd frontend
@@ -60,63 +77,63 @@ npm install
 npm run dev              # http://localhost:5173
 ```
 
-### 3. Usar la aplicación
+### 3. Using the app
 
-- Carta digital (pública): `http://localhost:5173/`
-- Login del panel: `http://localhost:5173/login`
-- Panel administrativo (requiere login): `http://localhost:5173/admin`
+- Public menu: `http://localhost:5173/`
+- Admin login: `http://localhost:5173/login`
+- Admin dashboard (requires login): `http://localhost:5173/admin`
 
-## 🔑 Gestión del usuario administrador
+## Admin Account Management
 
-El sistema está diseñado para tener **un solo usuario administrador**. Para crearlo o cambiar sus credenciales, corré desde `backend/`:
+The system is designed around a **single admin account** by policy. To create or rotate it, run from `backend/`:
 
 ```bash
 npm run create-admin
 ```
 
-o directamente con los datos como argumento:
+or pass credentials directly:
 
 ```bash
-npm run create-admin -- miUsuario miContraseñaSegura
+npm run create-admin -- myUsername myStrongPassword
 ```
 
-Cada vez que se ejecuta, reemplaza al usuario anterior — nunca puede haber más de una cuenta con acceso.
+Each run replaces the previous account — there is never more than one credential set with dashboard access, and it can only be created from a terminal with server access, never from the browser.
 
-## ⚙️ Variables de entorno
+## Environment Variables
 
-### Backend (`backend/.env`, opcional en local)
+### Backend (`backend/.env`, optional locally)
 
-Ver `backend/.env.example`:
+See `backend/.env.example`:
 
-| Variable      | Descripción                                                        | Por defecto |
-|---------------|---------------------------------------------------------------------|-------------|
-| `PORT`        | Puerto del servidor                                                  | `5000`      |
-| `CORS_ORIGIN` | Origen permitido para llamar a la API (URL del frontend en prod)     | `*`         |
-| `JWT_SECRET`  | Clave secreta para firmar los tokens de sesión                       | valor de ejemplo (cambiar en producción) |
+| Variable      | Description                                                        | Default |
+|---------------|-----------------------------------------------------------------------|---------|
+| `PORT`        | Server port                                                            | `5000`  |
+| `CORS_ORIGIN` | Allowed origin for API requests (your frontend's production URL)      | `*`     |
+| `JWT_SECRET`  | Secret key used to sign session tokens                                 | example value (change in production) |
 
-### Frontend (`frontend/.env`, opcional en local)
+### Frontend (`frontend/.env`, optional locally)
 
-Ver `frontend/.env.example`:
+See `frontend/.env.example`:
 
-| Variable       | Descripción                                | Por defecto             |
-|----------------|---------------------------------------------|--------------------------|
-| `VITE_API_URL` | URL pública del backend ya desplegado       | `http://localhost:5000`  |
+| Variable       | Description                          | Default                 |
+|----------------|----------------------------------------|--------------------------|
+| `VITE_API_URL` | Public URL of the deployed backend     | `http://localhost:5000`  |
 
-## ☁️ Despliegue en producción
+## Deployment
 
-Este proyecto separa frontend y backend, por lo que se recomienda desplegarlos en dos servicios distintos:
+This project separates frontend and backend, so it's designed to be deployed as two independent services:
 
 - **Frontend** → [Vercel](https://vercel.com) (Root Directory: `frontend`)
-- **Backend** → [Render](https://render.com), [Railway](https://railway.app) o [Fly.io](https://fly.io) (Root Directory: `backend`)
+- **Backend** → [Render](https://render.com), [Railway](https://railway.app), or [Fly.io](https://fly.io) (Root Directory: `backend`)
 
-### Pasos resumidos
+### Summary
 
-1. Desplegá `backend/` en Render (Build: `npm install`, Start: `npm start`) y definí la variable `JWT_SECRET`.
-2. Desde la consola/Shell de Render, corré `npm run create-admin` para crear el usuario administrador en el servidor.
-3. Desplegá `frontend/` en Vercel y definí `VITE_API_URL` apuntando a la URL de tu backend en Render.
+1. Deploy `backend/` on Render (Build: `npm install`, Start: `npm start`) and set the `JWT_SECRET` environment variable.
+2. From Render's Shell tab, run `npm run create-admin` to create the admin account on the live server.
+3. Deploy `frontend/` on Vercel and set `VITE_API_URL` to your backend's Render URL.
 
-> ⚠️ **Nota sobre persistencia:** en los planes gratuitos de Render/Railway el disco puede reiniciarse al redeployar. Para una base de datos 100% persistente en el plan gratuito, considerá migrar a un servicio como [Turso](https://turso.tech) (SQLite en la nube), o usar un plan con disco persistente.
+> ⚠️ **Persistence note:** free tiers on Render/Railway may reset local disk on redeploy. For a fully persistent free database, consider migrating to a service like [Turso](https://turso.tech) (cloud SQLite), or use a plan with a persistent disk.
 
-## 📄 Licencia
+## License
 
-MIT — ver [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE).
